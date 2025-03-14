@@ -38,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.exit_to_app, color: Colors.red),
             title: const Text("Sign Out", style: TextStyle(color: Colors.red)),
             onTap: () {
-              // TODO: Implement sign-out logic here
+              // TODO: Implement sign-out logic here//
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Signing out...")),
               );
