@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:realtime_stock_analytics/views/stocks/stock_list_screen.dart';
 import 'package:realtime_stock_analytics/views/news/news_feed_screen.dart';
 import 'package:realtime_stock_analytics/views/settings/settings_screen.dart';
