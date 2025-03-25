@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:realtime_stock_analytics/models/stock_model.dart';
 import 'package:realtime_stock_analytics/services/stock_service.dart';
 import 'package:realtime_stock_analytics/widgets/stock_card.dart';
+import 'package:realtime_stock_analytics/widgets/stock_details_bottomsheet.dart';
 
 class StockListScreen extends StatefulWidget {
   const StockListScreen({Key? key}) : super(key: key);
@@ -10,60 +13,15 @@ class StockListScreen extends StatefulWidget {
 }
 
 class _StockListScreenState extends State<StockListScreen> with SingleTickerProviderStateMixin {
-  List<Map<String, dynamic>> stockList = [];
-  bool isLoading = true;
-
-  final List<String> stockSymbols = ["AAPL", "TSLA", "GOOGL", "MSFT"];
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  final FirestoreService _firestoreService = FirestoreService(); // Firestore instance
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
-    fetchStockList();
-  }
-
-  void fetchStockList() async {
-    try {
-      List<Map<String, dynamic>> stocks = [];
-
-      for (String symbol in stockSymbols) {
-        List<double> prices = await StockService.fetchStockPrices(symbol);
-        if (prices.isNotEmpty) {
-          stocks.add({
-            "name": getStockName(symbol),
-            "symbol": symbol,
-            "price": prices.last,
-            "change": (prices.last - prices.first).toStringAsFixed(2),
-            "isOpen": true, // Can be updated dynamically
-          });
-        }
-      }
-
-      setState(() {
-        stockList = stocks;
-        isLoading = false;
-      });
-
-      _controller.forward(); // Trigger fade-in animation after fetching data
-    } catch (e) {
-      print("Error fetching stock data: $e");
-      setState(() => isLoading = false);
-    }
-  }
-
-  String getStockName(String symbol) {
-    final Map<String, String> stockNames = {
-      "AAPL": "Apple Inc.",
-      "TSLA": "Tesla, Inc.",
-      "GOOGL": "Alphabet Inc.",
-      "MSFT": "Microsoft Corp."
-    };
-    return stockNames[symbol] ?? "Unknown Stock";
   }
 
   @override
@@ -72,29 +30,65 @@ class _StockListScreenState extends State<StockListScreen> with SingleTickerProv
     super.dispose();
   }
 
+  // Function to show the bottom sheet
+  void _showStockDetails(BuildContext context, Stock stock) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StockDetailsBottomSheet(stock: stock),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : FadeTransition(
-        opacity: _fadeAnimation,
-        child: ListView.builder(
-          itemCount: stockList.length,
-          itemBuilder: (context, index) {
-            final stock = stockList[index];
-            return Hero(
-              tag: "stock_${stock['symbol']}", // Unique hero tag per stock
-              child: StockCard(
-                stockName: stock["name"],
-                stockSymbol: stock["symbol"],
-                currentPrice: stock["price"],
-                priceChange: double.parse(stock["change"]),
-                isMarketOpen: stock["isOpen"],
+      appBar: AppBar(
+        title: const Text("Stock List"),
+        backgroundColor: Colors.black,
+      ),
+      body: StreamBuilder<List<Stock>>(
+        stream: _firestoreService.getRealTimeStockPrices(), // Listening to Firestore updates
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading stocks", style: TextStyle(color: Colors.red)));
+          }
+
+          final stockList = snapshot.data ?? [];
+
+          if (stockList.isEmpty) {
+            return const Center(child: Text("No stocks available"));
+          }
+
+          _controller.forward(); // Trigger animation when data loads
+
+          return FadeTransition(
+            opacity: _fadeAnimation,
+            child: RefreshIndicator(
+              onRefresh: () async {}, // No need to refresh manually; Firestore updates in real-time
+              child: ListView.builder(
+                itemCount: stockList.length,
+                itemBuilder: (context, index) {
+                  final stock = stockList[index];
+                  return GestureDetector(
+                    onTap: () => _showStockDetails(context, stock), // Open bottom sheet on tap
+                    child: Hero(
+                      tag: "stock_${stock.symbol}",
+                      child: StockCard(stock: stock),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

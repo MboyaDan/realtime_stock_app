@@ -1,20 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:realtime_stock_analytics/models/stock_model.dart';
 
 class StockCard extends StatefulWidget {
-  final String stockName;
-  final String stockSymbol;
-  final double currentPrice;
-  final double priceChange;
-  final bool isMarketOpen;
+  final Stock stock;
 
-  const StockCard({
-    Key? key,
-    required this.stockName,
-    required this.stockSymbol,
-    required this.currentPrice,
-    required this.priceChange,
-    required this.isMarketOpen,
-  }) : super(key: key);
+  const StockCard({Key? key, required this.stock}) : super(key: key);
 
   @override
   _StockCardState createState() => _StockCardState();
@@ -34,7 +24,7 @@ class _StockCardState extends State<StockCard> with SingleTickerProviderStateMix
 
     _priceColorAnimation = ColorTween(
       begin: Colors.white,
-      end: widget.priceChange >= 0 ? Colors.green : Colors.red,
+      end: widget.stock.priceChange >= 0 ? Colors.green : Colors.red,
     ).animate(_controller);
 
     _controller.forward();
@@ -43,7 +33,7 @@ class _StockCardState extends State<StockCard> with SingleTickerProviderStateMix
   @override
   void didUpdateWidget(StockCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentPrice != widget.currentPrice) {
+    if (oldWidget.stock.currentPrice != widget.stock.currentPrice) {
       _controller.forward(from: 0.0);
     }
   }
@@ -69,12 +59,12 @@ class _StockCardState extends State<StockCard> with SingleTickerProviderStateMix
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.stockName,
+                  widget.stock.name,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.stockSymbol,
+                  widget.stock.symbol,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
@@ -86,20 +76,20 @@ class _StockCardState extends State<StockCard> with SingleTickerProviderStateMix
                   animation: _priceColorAnimation,
                   builder: (context, child) {
                     return Text(
-                      "\$${widget.currentPrice.toStringAsFixed(2)}",
+                      "\$${widget.stock.currentPrice.toStringAsFixed(2)}",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _priceColorAnimation.value),
                     );
                   },
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.priceChange >= 0
-                      ? "+${widget.priceChange.toStringAsFixed(2)}%"
-                      : "${widget.priceChange.toStringAsFixed(2)}%",
+                  widget.stock.priceChange >= 0
+                      ? "+${widget.stock.priceChange.toStringAsFixed(2)}%"
+                      : "${widget.stock.priceChange.toStringAsFixed(2)}%",
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: widget.priceChange >= 0 ? Colors.green : Colors.red,
+                    color: widget.stock.priceChange >= 0 ? Colors.green : Colors.red,
                   ),
                 ),
               ],

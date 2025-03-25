@@ -11,7 +11,6 @@ class NewsService {
     try {
       final response = await http.get(url);
       print("API Response: ${response.body}"); // Debugging log
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
