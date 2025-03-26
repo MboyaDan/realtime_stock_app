@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../controllers/stock_controller.dart';
+import '../models/stock_model.dart';
 
 class StockTickerWidget extends StatefulWidget {
   @override
@@ -7,63 +10,75 @@ class StockTickerWidget extends StatefulWidget {
 
 class _StockTickerWidgetState extends State<StockTickerWidget> with SingleTickerProviderStateMixin {
   late ScrollController _scrollController;
-  final List<Map<String, String>> stocks = [
-    {"symbol": "AAPL", "price": "221.07", "change": "+1.5%"},
-    {"symbol": "TSLA", "price": "950.20", "change": "-0.8%"},
-    {"symbol": "AMZN", "price": "3,250.50", "change": "+2.3%"},
-    {"symbol": "GOOGL", "price": "2,850.75", "change": "-0.5%"},
-    {"symbol": "MSFT", "price": "330.30", "change": "+1.1%"},
-  ];
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    _autoScroll();
   }
 
   void _autoScroll() {
-    Future.delayed(Duration(seconds: 2), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(seconds: 10),
-        curve: Curves.linear,
-      ).then((_) {
-        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
-        _autoScroll();
-      });
+    Future.delayed(const Duration(seconds: 2), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(seconds: 10),
+          curve: Curves.linear,
+        ).then((_) {
+          _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+          _autoScroll();
+        });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      color: Colors.black87,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        controller: _scrollController,
-        itemCount: stocks.length,
-        itemBuilder: (context, index) {
-          final stock = stocks[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                Text(stock["symbol"]!, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                SizedBox(width: 5),
-                Text(stock["price"]!, style: TextStyle(color: Colors.white)),
-                SizedBox(width: 5),
-                Text(
-                  stock["change"]!,
-                  style: TextStyle(color: stock["change"]!.contains('+') ? Colors.green : Colors.red),
+    return Consumer<StockProvider>(
+      builder: (context, stockProvider, child) {
+        if (stockProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (stockProvider.trendingStocks.isEmpty) {
+          return const Center(child: Text("No trending stocks available."));
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _autoScroll();
+        });
+
+        return Container(
+          height: 40,
+          color: Colors.black87,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            controller: _scrollController,
+            itemCount: stockProvider.trendingStocks.length,
+            itemBuilder: (context, index) {
+              final Stock stock = stockProvider.trendingStocks[index];
+              final isPositiveChange = stock.priceChange >= 0;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    Text(stock.symbol, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 5),
+                    Text("\$${stock.currentPrice.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white)),
+                    const SizedBox(width: 5),
+                    Text(
+                      "${isPositiveChange ? '+' : ''}${stock.priceChange.toStringAsFixed(2)}%",
+                      style: TextStyle(color: isPositiveChange ? Colors.green : Colors.red),
+                    ),
+                    const SizedBox(width: 20),
+                  ],
                 ),
-                SizedBox(width: 20),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

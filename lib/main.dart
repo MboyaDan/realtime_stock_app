@@ -8,11 +8,16 @@ import 'package:realtime_stock_analytics/views/stocks/stock_list_screen.dart';
 import 'package:realtime_stock_analytics/views/news/news_feed_screen.dart';
 import 'package:realtime_stock_analytics/views/settings/settings_screen.dart';
 
+import 'controllers/sentiment_provider.dart';
+import 'controllers/stock_controller.dart';
+
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => SentimentProvider()),
+        ChangeNotifierProvider(create: (context) => StockProvider()),
       ],
       child: Builder(
         builder: (context) {

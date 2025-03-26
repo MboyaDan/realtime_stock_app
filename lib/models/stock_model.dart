@@ -1,4 +1,5 @@
 class Stock {
+  final String id;
   final String name;
   final String symbol;
   final double currentPrice;
@@ -7,6 +8,7 @@ class Stock {
   final List<double> historicalPrices;
 
   Stock({
+    required this.id,
     required this.name,
     required this.symbol,
     required this.currentPrice,
@@ -15,19 +17,23 @@ class Stock {
     required this.historicalPrices,
   });
 
-  // Factory method to create Stock from a map (useful for Firestore)
-  factory Stock.fromMap(Map<String, dynamic> data) {
+  // Factory method to create a Stock object from Firestore data
+  factory Stock.fromMap(Map<String, dynamic> data, String docId) {
     return Stock(
+      id: docId, // Assign Firestore document ID
       name: data['name'] ?? '',
       symbol: data['symbol'] ?? '',
       currentPrice: (data['currentPrice'] ?? 0.0).toDouble(),
       priceChange: (data['priceChange'] ?? 0.0).toDouble(),
       isMarketOpen: data['isMarketOpen'] ?? false,
-      historicalPrices: List<double>.from(data['historicalPrices'] ?? []),
+      historicalPrices: (data['historicalPrices'] as List<dynamic>?)
+          ?.map((e) => (e as num).toDouble())
+          .toList() ??
+          [],
     );
   }
 
-  // Convert Stock object to a Map (useful for Firestore)
+  // Convert Stock object to Firestore-compatible map
   Map<String, dynamic> toMap() {
     return {
       'name': name,
